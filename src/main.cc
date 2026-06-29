@@ -10,7 +10,7 @@ using std::endl;
 int mapWidth = 40;
 int mapHeight = 25;
 int botSpeed = 2;
-
+bool hardcoreMode = false;
 
 void setupConsoleWindow() {
 #ifdef _WIN32
@@ -32,7 +32,7 @@ void showStartMenu() {
         cout << "\x1B[H";
         #endif
         cout << "========================================================\n";
-        cout << "               🏁 cRace SETUP 🏁             \n";
+        cout << "            🏁 cMaze SETUP 🏁             \n";
         cout << "========================================================\n\n";
         cout << " Use W/S to move rows, A/D to change choices, Enter to select.\n\n";
 
@@ -46,9 +46,10 @@ void showStartMenu() {
 
         if (activeRow == 1) cout << " > "; else cout << "   ";
         cout << "DIFFICULTY:   ";
-        if (difficultySelection == 0) cout << "[ EASY ]      Normal        Hard  \n";
-        else if (difficultySelection == 1) cout << "  Easy       [ NORMAL ]     Hard  \n";
-        else cout << "  Easy        Normal       [ HARD ]\n";
+        if (difficultySelection == 0)      cout << "[ EASY ]    Normal      Hard        Hardcore    \n";
+        else if (difficultySelection == 1) cout << "  Easy     [ NORMAL ]   Hard        Hardcore    \n";
+        else if (difficultySelection == 2) cout << "  Easy      Normal     [ HARD ]     Hardcore    \n";
+        else                               cout << "  Easy      Normal      Hard     [ HARDCORE ]   \n";
 
         cout << "\n\n";
 
@@ -68,11 +69,11 @@ void showStartMenu() {
         }
         if (key == 'a' || key == 'A') {
             if (activeRow == 0) sizeSelection = (sizeSelection - 1 + 3) % 3;
-            if (activeRow == 1) difficultySelection = (difficultySelection - 1 + 3) % 3;
+            if (activeRow == 1) difficultySelection = (difficultySelection - 1 + 4) % 4;
         }
         if (key == 'd' || key == 'D') {
             if (activeRow == 0) sizeSelection = (sizeSelection + 1) % 3;
-            if (activeRow == 1) difficultySelection = (difficultySelection + 1) % 3;
+            if (activeRow == 1) difficultySelection = (difficultySelection + 1) % 4;
         }
         if (key == 13) {
             if (activeRow == 2) {
@@ -80,9 +81,14 @@ void showStartMenu() {
                 else if (sizeSelection == 1) { mapWidth = 40; mapHeight = 25; }
                 else { mapWidth = 60; mapHeight = 45; }
 
+                hardcoreMode = false;
                 if (difficultySelection == 0) botSpeed = 4;
                 else if (difficultySelection == 1) botSpeed = 2;
-                else botSpeed = 1;
+                else if (difficultySelection == 2) botSpeed = 1;
+                else { 
+                    botSpeed = 1; 
+                    hardcoreMode = true;
+                }
 
                 break;
             }
@@ -108,7 +114,7 @@ bool askRestartMenu(string winner) {
         if (selection == 0) {
             cout << "  > [ RESTART WITH NEW MAP ] <      [ QUIT GAME ]  \n";
         } else {
-            cout << "    [ RESTART WITH NEW MAP ]    > [ QUIT GAME ] <  \n";
+            cout << "     [ RESTART WITH NEW MAP ]    > [ QUIT GAME ] <  \n";
         }
         cout << "\n(Use A/D to navigate selection, press Enter to select)\n";
 
@@ -138,11 +144,22 @@ int main() {
 
     while (keepPlaying) {
         Entity player(Position{1.0, 1.0}, 1.0, "Player", "🔴", false);
-        vector<Entity> bots = {
-            Entity(Position{1.0, 3.0}, 1.0, "Bot Alpha", "🟦", true),
-            Entity(Position{3.0, 1.0}, 1.0, "Bot Beta",  "🟨", true),
-            Entity(Position{3.0, 1.0}, 1.0, "Bot Delta", "🟩", true)
-        };
+        
+        vector<Entity> bots;
+        if (hardcoreMode) {
+            bots = {
+                Entity(Position{1.0, 3.0}, 1.0, "Bot Omega", "💀", true),
+                Entity(Position{3.0, 1.0}, 1.0, "Bot Omega", "💀", true),
+                Entity(Position{3.0, 3.0}, 1.0, "Bot Omega", "💀", true),
+                Entity(Position{4.0, 1.0}, 1.0, "Bot Omega", "💀", true)
+            };
+        } else {
+            bots = {
+                Entity(Position{1.0, 3.0}, 1.0, "Bot Alpha", "🟦", true),
+                Entity(Position{3.0, 1.0}, 1.0, "Bot Beta",  "🟨", true),
+                Entity(Position{3.0, 1.0}, 1.0, "Bot Delta", "🟩", true)
+            };
+        }
 
         bool raceRunning = true;
         string winnerName = "";
@@ -159,9 +176,7 @@ int main() {
             char currentDir = ' ';
             
             #ifdef _WIN32
-            if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) { 
-                raceRunning = false; winnerName = ""; break; 
-            }
+            if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) { raceRunning = false; winnerName = ""; break; }
             if (GetAsyncKeyState('W') & 0x8000) currentDir = 'w';
             else if (GetAsyncKeyState('S') & 0x8000) currentDir = 's';
             else if (GetAsyncKeyState('A') & 0x8000) currentDir = 'a';
@@ -188,7 +203,7 @@ int main() {
 
             botTickCounter++;
             for (auto& bot : bots) {
-                if (botTickCounter % botSpeed == 0) { 
+                if (hardcoreMode || (botTickCounter % botSpeed == 0)) { 
                     bot.updateBotAI(gameMap);
                 }
                 if (gameMap.getTile(static_cast<int>(bot.getPos().x), static_cast<int>(bot.getPos().y)) == 2) {
@@ -216,6 +231,7 @@ int main() {
             #ifdef _WIN32
             system("cls");
             #endif
+
             showStartMenu();
             setupConsoleWindow();
             gameMap = Map(mapWidth, mapHeight);

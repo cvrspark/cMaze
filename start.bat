@@ -1,6 +1,6 @@
 @echo off
 cd build/
-cRace.exe
+cMaze.exe
 
 echo.
 echo.
